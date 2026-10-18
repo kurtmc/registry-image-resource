@@ -292,14 +292,30 @@ func ociFormat(dest string, tag name.Tag, image v1.Image) error {
 }
 
 func rootfsFormat(dest string, image v1.Image, debug bool, stderr io.Writer) error {
-	err := unpackImage(filepath.Join(dest, "rootfs"), image, debug, stderr)
-	if err != nil {
-		return fmt.Errorf("extract image: %w", err)
-	}
-
 	cfg, err := image.ConfigFile()
 	if err != nil {
 		return fmt.Errorf("inspect image config: %w", err)
+	}
+
+	rootfs := filepath.Join(dest, "rootfs")
+
+	// Windows layers carry security descriptors and registry hives that only
+	// a Windows host can apply, so they stay packed.
+	if cfg.OS == "windows" {
+		ioi, err := NewIndexImageFromImage(image)
+		if err != nil {
+			return fmt.Errorf("new index image from image: %w", err)
+		}
+
+		err = ioi.WriteToPath(rootfs)
+		if err != nil {
+			return fmt.Errorf("write oci layout: %w", err)
+		}
+	} else {
+		err = unpackImage(rootfs, image, debug, stderr)
+		if err != nil {
+			return fmt.Errorf("extract image: %w", err)
+		}
 	}
 
 	meta, err := os.Create(filepath.Join(dest, "metadata.json"))

@@ -270,6 +270,11 @@ differences:
           specified, will default to https://pkg.go.dev/runtime#GOOS.
         </li>
       </ul>
+      <p>
+        For images whose config has <code>os: windows</code>, the
+        <code>rootfs</code> format holds an OCI image layout instead of an
+        unpacked tree. See <a href="#rootfs-format"><code>rootfs</code> Format</a>.
+      </p>
     </td>
   </tr>
   <tr>
@@ -687,6 +692,11 @@ Fetches an image at the exact digest specified by the version.
             specified, will default to https://pkg.go.dev/runtime#GOOS.
             </li>
         </ul>
+        <p>
+            For images whose config has <code>os: windows</code>, the
+            <code>rootfs</code> format holds an OCI image layout instead of an
+            unpacked tree. See <a href="#rootfs-format"><code>rootfs</code> Format</a>.
+        </p>
     </td>
   </tr>
   <tr>
@@ -763,6 +773,24 @@ In this format, the resource will produce the following files:
 * `./rootfs/...`: the unpacked rootfs produced by the image.
 * `./metadata.json`: the runtime information to propagate to Concourse.
 * `./labels.json`: A file containing a JSON map of image labels, e.g. `{ "commit": "4e5c4ea" }`
+
+For images whose config has `os: windows`, `./rootfs` holds the image's [OCI
+image layout](https://github.com/opencontainers/image-spec/blob/main/image-layout.md)
+instead of an unpacked tree, because Windows layers can only be applied by the
+Windows host. Concourse's Windows containerd runtime imports those layers. Set
+`platform` to select the Windows image from a multi-platform tag:
+
+```yaml
+resources:
+- name: nanoserver
+  type: registry-image
+  source:
+    repository: mcr.microsoft.com/windows/nanoserver
+    tag: ltsc2022
+    platform:
+      os: windows
+      architecture: amd64
+```
 
 ##### `oci` Format
 
